@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* ─── Landing palette (Neumorphism light) ─── */
+  --color-background: #e0e5ec;
+  --color-surface:    #ffffff;
+  --color-foreground: #2d3436;
+
+  --color-card:            #e0e5ec;
+  --color-card-foreground: #2d3436;
+
+  --color-popover:            #e0e5ec;
+  --color-popover-foreground: #2d3436;
+
+  /* Brand red — đồng nhất với landing #ff4757 */
+  --color-primary:            #ff4757;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary:            #d1d9e6;
+  --color-secondary-foreground: #2d3436;
+
+  --color-muted:            #d1d9e6;
+  --color-muted-foreground: #4a5568;
+
+  --color-accent:            #ff4757;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive:            #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #babecc;
+  --color-input:  #d1d9e6;
+  --color-ring:   #ff4757;
+
+  --color-success:            #10b981;
+  --color-success-foreground: #fff;
+
+  --color-warning:            #f59e0b;
+  --color-warning-foreground: #fff;
+
+  /* Neumorphism shadow tokens */
+  --shadow-neu-raised:  8px 8px 16px #babecc, -8px -8px 16px #ffffff;
+  --shadow-neu-card:    6px 6px 12px #babecc, -6px -6px 12px #ffffff;
+  --shadow-neu-pressed: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
+  --shadow-neu-inset:   inset 6px 6px 12px #babecc, inset -6px -6px 12px #ffffff;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-sans min-h-screen;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* ─── Neumorphism card — nổi lên (giống landing) ─── */
+  .neu-card {
+    background: #e0e5ec;
+    box-shadow: var(--shadow-neu-raised);
+    border-radius: 1rem;
+  }
+
+  /* ─── Dashboard glass panel → chuyển thành neu surface ─── */
+  .glass-panel {
+    background: #e0e5ec;
+    box-shadow: var(--shadow-neu-card);
+    border-radius: 1rem;
+  }
+
+  /* Surface trắng nhẹ cho card nội dung quan trọng */
+  .surface-card {
+    background: #ffffff;
+    box-shadow: 0 1px 3px #babecc, 0 1px 2px #babecc;
+    border: 1px solid #d1d9e6;
+    border-radius: 0.75rem;
+  }
+
+  /* ─── Input inset (như landing) ─── */
+  .neu-input {
+    background: #e0e5ec;
+    box-shadow: var(--shadow-neu-inset);
+    border: none;
+    outline: none;
+    border-radius: 0.75rem;
+  }
+
+  .neu-input:focus {
+    box-shadow: var(--shadow-neu-inset), 0 0 0 2px #ff4757;
+  }
+
+  /* ─── Button neon-shadow (giữ tương thích) ─── */
+  .neon-shadow {
+    box-shadow: 0 0 15px rgba(255, 71, 87, 0.35);
+  }
+  .neon-shadow-hover:hover {
+    box-shadow: 0 0 25px rgba(255, 71, 87, 0.55);
+  }
+
+  /* ─── Sidebar active item (màu xanh nhạt như Gymie, nhưng dùng red tint) ─── */
+  .nav-active {
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+    box-shadow: 3px 3px 6px #babecc, -3px -3px 6px #ffffff;
+  }
+
+  /* ─── Trend badge ─── */
+  .trend-up   { color: #10b981; }
+  .trend-down { color: #ef4444; }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #d1d9e6; }
+  ::-webkit-scrollbar-thumb { background: #babecc; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #ff4757; }
+}
