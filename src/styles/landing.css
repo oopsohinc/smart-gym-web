@@ -1,0 +1,112 @@
+:root {
+  --background: #e0e5ec;
+  --foreground: #2d3436;
+  --card: #e0e5ec;
+  --accent: #ff4757;
+  --muted: #4a5568;
+  --border: #babecc;
+  --radius: 16px;
+  --shadow-card: 8px 8px 16px #babecc, -8px -8px 16px #ffffff;
+  --shadow-floating: 12px 12px 24px #babecc, -12px -12px 24px #ffffff, inset 1px 1px 0 rgba(255,255,255,0.5);
+  --shadow-pressed: inset 6px 6px 12px #babecc, inset -6px -6px 12px #ffffff;
+  --shadow-glow: 0 0 10px 2px rgba(255, 71, 87, 0.6);
+  --shadow-glow-green: 0 0 10px 2px rgba(34, 197, 94, 0.8);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background: var(--background);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.neu-card {
+  box-shadow: var(--shadow-card);
+  background: var(--card);
+  border-radius: var(--radius);
+}
+
+.neu-floating {
+  box-shadow: var(--shadow-floating);
+}
+
+.neu-pressed {
+  box-shadow: var(--shadow-pressed);
+}
+
+.neu-button {
+  transition: all 150ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neu-button:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-pressed);
+}
+
+.led-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-glow);
+}
+
+.led-indicator-green {
+  box-shadow: var(--shadow-glow-green);
+}
+
+.with-screws {
+  position: relative;
+}
+
+.with-screws::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(0,0,0,0.15) 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 12px) 12px, rgba(0,0,0,0.15) 2px, transparent 3px),
+    radial-gradient(circle at 12px calc(100% - 12px), rgba(0,0,0,0.15) 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), rgba(0,0,0,0.15) 2px, transparent 3px);
+  border-radius: inherit;
+}
+
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%);
+  background-size: 100% 4px;
+  opacity: 0.1;
+}
+
+.carbon-fiber {
+  background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+  background-blend-mode: overlay;
+}
+
+.mechanical-ease {
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
