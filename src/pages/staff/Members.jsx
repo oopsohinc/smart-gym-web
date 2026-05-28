@@ -1,48 +1,87 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Badge, Button, Card, PageHeader, Pagination } from "@/components/ui";
-import { useStaffMembers } from "@/hooks/use-queries";
+import { Badge, Button, Card, PageHeader, Pagination, SearchFilterBar } from "@/components/ui";
+import { useStaffMembers, usePackages } from "@/hooks/use-queries";
 
 const LIMIT = 10;
 
 export default function StaffMembers() {
-  const [mode, setMode] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [packageFilter, setPackageFilter] = useState("");
 
-  // UX: reset về trang 1 khi đổi mode
-  useEffect(() => { setCurrentPage(1); }, [mode]);
+  const { data: rawPackages } = usePackages();
+  const packages = rawPackages || [];
 
-  const { data: raw, isLoading, isError, isFetching } = useStaffMembers(mode, { page: currentPage, limit: LIMIT });
+  // UX: reset về trang 1 khi đổi bất kỳ bộ lọc nào
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, packageFilter]);
+
+  const { data: raw, isLoading, isError, isFetching } = useStaffMembers({
+    page: currentPage,
+    limit: LIMIT,
+    q: search,
+    status: statusFilter,
+    packageId: packageFilter,
+  });
 
   const members    = raw?.data ?? (Array.isArray(raw) ? raw : []);
   const pagination = raw?.pagination ?? null;
 
   const handlePageChange = (page) => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
+  const packageOptions = [
+    { label: "Tất cả gói tập", value: "" },
+    ...packages.map((pkg) => ({
+      label: pkg.name || pkg.title || pkg.code || "",
+      value: pkg._id || pkg.id || "",
+    })),
+  ];
+
+  const statusOptions = [
+    { label: "Tất cả trạng thái", value: "" },
+    { label: "Đang hoạt động", value: "active" },
+    { label: "Không hoạt động", value: "inactive" },
+    { label: "Bị khóa", value: "blocked" },
+  ];
+
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Danh sách hội viên"
-        description={pagination ? `Tổng ${pagination.totalRecords ?? members.length} hội viên` : "Lọc theo trạng thái"}
+        description={pagination ? `Tổng ${pagination.total ?? pagination.totalRecords ?? members.length} hội viên` : "Quản lý và tra cứu thông tin hội viên"}
       />
 
-      {/* Filter mode */}
-      <div
-        className="mb-4 flex gap-1 p-1 rounded-xl w-fit"
-        style={{ boxShadow: "inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff" }}
-      >
-        {[{ key: "active", label: "Active" }, { key: "expiring_soon", label: "Sắp hết hạn" }].map((m) => (
-          <button key={m.key} onClick={() => setMode(m.key)}
-            className={[
-              "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-              mode === m.key
-                ? "bg-[#ff4757] text-white shadow-[3px_3px_6px_rgba(166,50,60,0.3)]"
-                : "text-[#4a5568] hover:text-[#2d3436]",
-            ].join(" ")}>
-            {m.label}
-          </button>
-        ))}
-      </div>
+      <SearchFilterBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Tìm kiếm hội viên theo tên, email, sđt..."
+        filters={[
+          {
+            key: "status",
+            label: "Trạng thái",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: statusOptions,
+            type: "select",
+          },
+          {
+            key: "packageId",
+            label: "Gói tập",
+            value: packageFilter,
+            onChange: setPackageFilter,
+            options: packageOptions,
+            type: "select",
+          },
+        ]}
+        onClear={() => {
+          setSearch("");
+          setStatusFilter("");
+          setPackageFilter("");
+        }}
+      />
 
       {isLoading && <p className="text-[#4a5568]">Đang tải danh sách hội viên...</p>}
       {isError   && <p className="text-[#ef4444]">Không tải được danh sách hội viên.</p>}

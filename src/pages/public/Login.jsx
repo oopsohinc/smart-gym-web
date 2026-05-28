@@ -16,7 +16,18 @@ export default function Login() {
     formState: { errors },
   } = useForm({ defaultValues: { email: "", password: "" } });
 
-  const serverError = login.error?.response?.data?.message || login.error?.message;
+  const rawError = login.error?.response?.data?.message || login.error?.response?.data?.error || login.error?.message;
+  let serverError = null;
+  if (rawError) {
+    const lower = String(rawError).toLowerCase();
+    if (lower.includes("invalid") || lower.includes("credentials") || lower.includes("wrong") || lower.includes("password") || lower.includes("incorrect") || lower.includes("unauthorized") || lower.includes("401")) {
+      serverError = "Tài khoản hoặc mật khẩu không chính xác";
+    } else if (lower.includes("not found") || lower.includes("exist")) {
+      serverError = "Tài khoản email này không tồn tại trong hệ thống!";
+    } else {
+      serverError = rawError;
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-[#e0e5ec] flex items-center justify-center px-4 py-10 noise-overlay">
@@ -70,7 +81,12 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-[#2d3436] mb-2">Mật khẩu <span className="text-[#ff4757]">*</span></label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold text-[#2d3436]">Mật khẩu <span className="text-[#ff4757]">*</span></label>
+                <Link to="/forgot-password" className="text-xs text-[#ff4757] font-semibold hover:underline">
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPw ? "text" : "password"}

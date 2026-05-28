@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 import { Button, Card, ConfirmModal, Input, Label, Modal, PageHeader, Pagination, SearchFilterBar } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import {
   useAdminCreatePackage,
   useAdminDeletePackage,
+  useAdminPermanentDeletePackage,
   useAdminPackages,
   useAdminUpdatePackage,
 } from "@/hooks/use-queries";
@@ -33,11 +35,20 @@ export default function AdminPackages() {
   const createPackage = useAdminCreatePackage();
   const updatePackage = useAdminUpdatePackage();
   const deletePackage = useAdminDeletePackage();
+  const permanentDeletePackage = useAdminPermanentDeletePackage();
 
   const handlePageChange = (page) => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
-  const onOpenCreate = () => { setEditingId(null); setFormData(INITIAL_FORM); setIsOpen(true); };
+  const onOpenCreate = () => {
+    createPackage.reset();
+    updatePackage.reset();
+    setEditingId(null);
+    setFormData(INITIAL_FORM);
+    setIsOpen(true);
+  };
   const onOpenEdit = (pkg) => {
+    createPackage.reset();
+    updatePackage.reset();
     setEditingId(pkg.id);
     setFormData({ name: pkg.name, description: pkg.description || "", price: pkg.price, durationDays: pkg.durationDays, isActive: pkg.isActive });
     setIsOpen(true);
@@ -49,6 +60,27 @@ export default function AdminPackages() {
     } else {
       createPackage.mutate(formData, { onSuccess: () => setIsOpen(false) });
     }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return;
+    permanentDeletePackage.mutate(deleteTargetId, {
+      onSuccess: () => {
+        setDeleteTargetId(null);
+        toast({
+          title: "Thành công",
+          description: "Đã xóa gói tập vĩnh viễn thành công.",
+        });
+      },
+      onError: (err) => {
+        setDeleteTargetId(null);
+        toast({
+          title: "Lỗi xóa gói tập",
+          description: err?.response?.data?.message || "Không thể xóa gói tập vì đã có dữ liệu liên kết.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -94,12 +126,23 @@ export default function AdminPackages() {
 
       <Pagination meta={pagination} currentPage={currentPage} onPageChange={handlePageChange} />
 
-      <ConfirmModal isOpen={!!deleteTargetId} onClose={() => setDeleteTargetId(null)}
-        onConfirm={() => deletePackage.mutate(deleteTargetId, { onSuccess: () => setDeleteTargetId(null), onError: () => setDeleteTargetId(null) })}
-        title="Xóa gói tập" message="Bạn có chắc chắn muốn xóa gói tập này?" confirmLabel="Xóa" isLoading={deletePackage.isPending} />
+      <ConfirmModal
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Xóa gói tập"
+        message="Bạn có chắc chắn muốn xóa vĩnh viễn gói tập này khỏi hệ thống?"
+        confirmLabel="Xóa"
+        isLoading={permanentDeletePackage.isPending}
+      />
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={editingId ? "Sửa gói tập" : "Thêm gói tập"}>
         <form className="space-y-4" onSubmit={onSubmit}>
+          {(createPackage.error || updatePackage.error) && (
+            <div className="text-sm font-semibold text-[#ef4444] bg-[#fee2e2] px-4 py-2.5 rounded-xl border border-[#fca5a5]">
+              ⚠️ {createPackage.error?.response?.data?.message || updatePackage.error?.response?.data?.message || "Đã xảy ra lỗi khi lưu gói tập."}
+            </div>
+          )}
           <div><Label required>Tên gói</Label><Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} required /></div>
           <div><Label>Mô tả</Label><Input value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} /></div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

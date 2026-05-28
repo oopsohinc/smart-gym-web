@@ -99,14 +99,24 @@ export const useCreateOrder = () =>
 export const useWorkoutPlans = () =>
   useQuery({
     queryKey: ["/member/workout-plans"],
-    queryFn: async () => normalizeWorkoutPlansResponse((await api.get("/member/workout-plans")).data),
+    queryFn: async () => {
+      const res = await api.get("/member/workout-plans");
+      // Backend trả về { data: [...] } hoặc trực tiếp []
+      const raw = res.data?.data ?? res.data;
+      return normalizeWorkoutPlansResponse(raw);
+    },
   });
 
 /** GET /api/member/workout-plans/active — Kế hoạch đang kích hoạt */
 export const useActiveWorkoutPlan = () =>
   useQuery({
     queryKey: ["/member/workout-plans/active"],
-    queryFn: async () => normalizeWorkoutPlan((await api.get("/member/workout-plans/active")).data),
+    queryFn: async () => {
+      const res = await api.get("/member/workout-plans/active");
+      // Backend trả về { data: {...} } hoặc trực tiếp {}
+      const raw = res.data?.data ?? res.data;
+      return normalizeWorkoutPlan(raw);
+    },
   });
 
 /** POST /api/member/workout-plans — Tạo kế hoạch mới */
@@ -145,6 +155,27 @@ export const useActivateWorkoutPlan = () => {
         variant: "destructive",
         title: "Lỗi",
         description: err?.response?.data?.message || "Kích hoạt thất bại",
+      }),
+  });
+};
+
+/** POST /api/member/workout-plans/generate — Generate AI workout plan */
+export const useGenerateWorkoutPlan = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => (await api.post("/member/workout-plans/generate")).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/member/workout-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/member/workout-plans/active"] });
+      toast({ title: "Đã tạo AI Workout Plan" });
+    },
+    onError: (err) =>
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: err?.response?.data?.message || "Không thể tạo AI Workout Plan",
       }),
   });
 };

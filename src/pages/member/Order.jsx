@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button, Card, Label, PageHeader, Select } from "@/components/ui";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/utils";
-import { useCreateVnpayPayment, usePackages } from "@/hooks/use-queries";
+import { useCreateVnpayPayment, useCreateCashPayment, usePackages } from "@/hooks/use-queries";
 
 export default function OrderCreate() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { data: packages, isLoading, isError } = usePackages();
   const createVnpayPayment = useCreateVnpayPayment();
+  const createCashPayment = useCreateCashPayment();
 
   const [packageId, setPackageId] = useState("");
   const [method, setMethod] = useState("vnpay");
@@ -32,23 +33,42 @@ export default function OrderCreate() {
       return;
     }
 
-    createVnpayPayment.mutate(
-      { memberId, packageId, paymentMethod: method },
-      {
-        onSuccess: (result) => {
-          const paymentUrl = result?.paymentUrl || result?.data?.paymentUrl;
+    if (method === "vnpay") {
+      createVnpayPayment.mutate(
+        { memberId, packageId, paymentMethod: method },
+        {
+          onSuccess: (result) => {
+            const paymentUrl = result?.paymentUrl || result?.data?.paymentUrl;
 
-          if (paymentUrl) {
-            window.location.href = paymentUrl;
-          } else {
-            alert("Không nhận được link thanh toán VNPAY.");
-          }
+            if (paymentUrl) {
+              window.location.href = paymentUrl;
+            } else {
+              alert("Không nhận được link thanh toán VNPAY.");
+            }
+          },
+          onError: (error) => {
+            alert(error?.response?.data?.message || "Không thể tạo thanh toán VNPAY.");
+          },
         },
-        onError: (error) => {
-          alert(error?.response?.data?.message || "Không thể tạo thanh toán VNPAY.");
+      );
+      return;
+    }
+
+    if (method === "cash") {
+      createCashPayment.mutate(
+        { memberId, packageId, paymentMethod: method },
+        {
+          onSuccess: (result) => {
+            alert("Thanh toán tiền mặt đã được ghi nhận. Hoàn tất thủ công và phát hành hoá đơn.");
+            navigate("/member/order");
+          },
+          onError: (error) => {
+            alert(error?.response?.data?.message || "Không thể tạo thanh toán tiền mặt.");
+          },
         },
-      },
-    );
+      );
+      return;
+    }
   };
 
   return (
@@ -80,7 +100,7 @@ export default function OrderCreate() {
                 onChange={(e) => setMethod(e.target.value)}
                 options={[
                   { label: "VNPay", value: "vnpay" },
-                  
+                  { label: "Tiền mặt (Ghi nhận)", value: "cash" },
                 ]}
               />
             </div>
@@ -92,8 +112,12 @@ export default function OrderCreate() {
               </div>
             )}
 
-            <Button type="submit" isLoading={createVnpayPayment.isPending} disabled={!packageId}>
-              Thanh toán VNPAY
+            <Button
+              type="submit"
+              isLoading={method === "vnpay" ? createVnpayPayment.isPending : createCashPayment.isPending}
+              disabled={!packageId}
+            >
+              {method === "vnpay" ? "Thanh toán VNPAY" : "Ghi nhận thanh toán tiền mặt"}
             </Button>
           </form>
         </Card>

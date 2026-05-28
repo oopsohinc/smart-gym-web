@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, X, Send, Loader2, MessageCircle } from "lucide-react";
 import { useAskAssistant } from "@/hooks/use-queries";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const WELCOME = {
   id: "welcome",
@@ -23,6 +24,7 @@ function TypingDots() {
 }
 
 export default function AiAssistant() {
+  const { user } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState("");
@@ -39,6 +41,10 @@ export default function AiAssistant() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, ask.isPending]);
+
+  if (user && (user.role === "admin" || user.role === "staff")) {
+    return null;
+  }
 
   const sendMessage = () => {
     const text = input.trim();

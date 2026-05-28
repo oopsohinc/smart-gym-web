@@ -45,9 +45,7 @@ export default function Checkins() {
                       ? format(new Date(record.createdAt), "dd/MM/yyyy HH:mm")
                       : "-"}
                   </p>
-                  <p className="text-sm text-[#4a5568]">
-                    Nhân viên: {record.staffName || record.staff?.name || "-"}
-                  </p>
+
                 </div>
                 <Badge variant={record.method === "qr" ? "success" : "default"}>
                   {record.method || "manual"}

@@ -81,13 +81,60 @@ export function normalizeAdminCheckinsResponse(raw) {
   const payload = raw?.data ?? raw;
   const data = payload?.data ?? payload ?? {};
 
+  // Support new backend shape where `trend` is an array of documents like:
+  // { _id: { year, month, day }, total: N }
+  const trend = Array.isArray(data?.trend) ? data.trend : Array.isArray(data?.weeklyCheckins) ? data.weeklyCheckins : [];
+
+  const normalizeTrend = (items) => {
+    return items
+      .map((it) => {
+        // _id can be an object { year, month, day } or a string/date
+        const id = it?._id ?? it?.date ?? it?.label ?? null;
+        let date = null;
+        if (id && typeof id === "object" && (id.year || id.month || id.day)) {
+          // month in backend is 1-based
+          const y = Number(id.year ?? id?.y ?? null);
+          const m = Number(id.month ?? id?.m ?? id?.mon ?? null);
+          const d = Number(id.day ?? id?.d ?? 1);
+          if (!Number.isNaN(y) && !Number.isNaN(m)) {
+            // create Date in UTC to avoid timezone shifting when comparing
+            date = new Date(Date.UTC(y, Math.max(0, m - 1), Math.max(1, d)));
+          }
+        } else if (id && typeof id === "string") {
+          const parsed = new Date(id);
+          if (!Number.isNaN(parsed.getTime())) date = parsed;
+        }
+
+        const count = Number(it?.total ?? it?.count ?? it?.value ?? 0);
+        return date ? { date: date.toISOString(), count } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  const daily = normalizeTrend(trend);
+  const totalFromTrend = daily.reduce((s, x) => s + Number(x.count || 0), 0);
+
+  // Determine today's count using `to` or last trend entry
+  let todayCount = Number(data?.todayCheckins ?? 0);
+  if (!todayCount) {
+    if (daily.length) {
+      const toDate = data?.to ? new Date(data.to) : new Date(daily[daily.length - 1].date);
+      const toIso = toDate.toISOString().slice(0, 10);
+      const found = daily.find((d) => d.date.slice(0, 10) === toIso);
+      todayCount = Number(found?.count ?? 0);
+    }
+  }
+
   return {
     from: data?.from ?? null,
     to: data?.to ?? null,
     filterType: data?.filterType ?? data?.rangeType ?? null,
-    totalCheckins: Number(data?.totalCheckins ?? 0),
-    todayCheckins: Number(data?.todayCheckins ?? 0),
-    weeklyCheckins: Array.isArray(data?.weeklyCheckins) ? data.weeklyCheckins : [],
+    totalCheckins: Number(data?.totalCheckins ?? totalFromTrend ?? 0),
+    todayCheckins: Number(todayCount ?? 0),
+    weeklyCheckins: daily, // keep the old key but fill with normalized daily series
+    trend: trend,
+    daily,
   };
 }
 

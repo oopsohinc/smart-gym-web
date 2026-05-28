@@ -31,6 +31,7 @@ export {
   useActiveWorkoutPlan,
   useCreateWorkoutPlan,
   useActivateWorkoutPlan,
+  useGenerateWorkoutPlan,
 } from "@/hooks/member/use-member-queries";
 
 // ─── Staff ────────────────────────────────────────────────────────────────────
@@ -54,11 +55,13 @@ export {
   useAdminCreateStaff,
   useAdminUpdateStaff,
   useAdminDeleteStaff,
+  useAdminPermanentDeleteStaff,
   // Packages
   useAdminPackages,
   useAdminCreatePackage,
   useAdminUpdatePackage,
   useAdminDeletePackage,
+  useAdminPermanentDeletePackage,
   // Orders
   useAdminOrders,
   useAdminVoidOrder,
@@ -71,6 +74,9 @@ export {
   useAdminUpdateRole,
   useAdminDeleteRole,
   useAdminPermissions,
+  // Users & Role assignment
+  useAdminUsers,
+  useAdminUpdateUserRole,
   // Knowledge Base
   useAdminKnowledgeBases,
   useAdminKnowledgeBaseDetail,
@@ -79,6 +85,7 @@ export {
   useAdminDeleteKnowledgeBase,
   // Payment
   useCreateVnpayPayment,
+  useCreateCashPayment,
 } from "@/hooks/admin/use-admin-queries";
 
 // ─── RAG / AI Assistant ───────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ban } from "lucide-react";
 import { format } from "date-fns";
 import { Badge, Button, Card, ConfirmModal, PageHeader, Pagination, SearchFilterBar } from "@/components/ui";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, parseViDate, formatViDateToIso } from "@/lib/utils";
 import { useAdminOrders, useAdminVoidOrder } from "@/hooks/use-queries";
 
 const LIMIT = 10;
@@ -27,8 +27,20 @@ export default function AdminOrders() {
   // UX: reset page khi filter thay đổi
   useEffect(() => { setCurrentPage(1); }, [search, status, from, to]);
 
+  const dateError = useMemo(() => {
+    if (!from || !to) return null;
+    const dFrom = parseViDate(from);
+    const dTo = parseViDate(to);
+    if (dFrom && dTo && dFrom > dTo) {
+      return "Từ ngày không được lớn hơn đến ngày!";
+    }
+    return null;
+  }, [from, to]);
+
   const { data: raw, isLoading, isError, isFetching } = useAdminOrders({
-    page: currentPage, limit: LIMIT, q: search, status, from, to,
+    page: currentPage, limit: LIMIT, q: search, status, 
+    from: dateError ? "" : formatViDateToIso(from), 
+    to: dateError ? "" : formatViDateToIso(to),
   });
   const voidOrder = useAdminVoidOrder();
 
@@ -58,6 +70,12 @@ export default function AdminOrders() {
         onClear={handleClear}
       />
 
+      {dateError && (
+        <div className="text-sm font-semibold text-[#ef4444] bg-[#fee2e2] px-4 py-2.5 rounded-xl border border-[#fca5a5]">
+          ⚠️ {dateError}
+        </div>
+      )}
+
       {isLoading && <p className="text-[#4a5568]">Đang tải orders...</p>}
       {isError   && <p className="text-[#ef4444]">Không tải được orders.</p>}
       {isFetching && !isLoading && <p className="text-xs text-[#4a5568]">Đang cập nhật...</p>}
@@ -71,7 +89,6 @@ export default function AdminOrders() {
                 <p className="text-xs text-[#4a5568]">Mã đơn</p>
                 <p className="truncate font-semibold text-[#2d3436]">{order.orderNo || getOrderId(order)}</p>
               </div>
-              <Badge variant={order.paymentStatus === "paid" ? "success" : "warning"}>{order.paymentStatus || "-"}</Badge>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <div><p className="text-[#4a5568]">Ngày tạo</p><p>{order.createdAt ? format(new Date(order.createdAt), "dd/MM/yyyy") : "-"}</p></div>
@@ -102,8 +119,7 @@ export default function AdminOrders() {
                 <th className="p-4">Ngày tạo</th>
                 <th className="p-4">Member</th>
                 <th className="p-4">Gói tập</th>
-                <th className="p-4">Thanh toán</th>
-                <th className="p-4">T.toán status</th>
+                 <th className="p-4">Thanh toán</th>
                 <th className="p-4">Số tiền</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Thao tác</th>
@@ -122,8 +138,7 @@ export default function AdminOrders() {
                     <div className="text-[#2d3436]">{order.packageName}</div>
                     <div className="text-xs text-[#4a5568]">{order.packageCode || "-"}</div>
                   </td>
-                  <td className="p-4"><Badge variant="warning">{order.paymentMethod || "-"}</Badge></td>
-                  <td className="p-4"><Badge variant={order.paymentStatus === "paid" ? "success" : "warning"}>{order.paymentStatus || "-"}</Badge></td>
+                   <td className="p-4"><Badge variant="warning">{order.paymentMethod || "-"}</Badge></td>
                   <td className="p-4 font-semibold text-[#ff4757]">{formatCurrency(order.amount)}</td>
                   <td className="p-4"><Badge variant={statusVariant(order.status)}>{order.status || "-"}</Badge></td>
                   <td className="p-4">
@@ -138,7 +153,7 @@ export default function AdminOrders() {
                 </tr>
               ))}
               {orders.length === 0 && (
-                <tr><td colSpan={9} className="p-8 text-center text-[#4a5568]">Không tìm thấy đơn hàng nào.</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-[#4a5568]">Không tìm thấy đơn hàng nào.</td></tr>
               )}
             </tbody>
           </table>

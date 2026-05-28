@@ -26,11 +26,9 @@ import { cn } from "@/lib/utils";
 
 const navItems = {
   member: [
-    { label: "Dashboard", href: "/member/dashboard", icon: LayoutDashboard },
+    { label: "Tổng quan", href: "/member/dashboard", icon: LayoutDashboard },
     { label: "Hồ sơ", href: "/member/profile", icon: UserCircle },
-    { label: "Đổi mật khẩu", href: "/member/password", icon: Key },
     { label: "Gói tập của tôi", href: "/member/subscription", icon: Dumbbell },
-    { label: "Mua gói tập", href: "/member/order", icon: CreditCard },
     { label: "Kế hoạch tập", href: "/member/workout-plans", icon: Swords },
     { label: "Mã QR check-in", href: "/member/qr", icon: QrCode },
     { label: "Lịch sử check-in", href: "/member/checkins", icon: History },
@@ -41,15 +39,15 @@ const navItems = {
     { label: "Danh sách hội viên", href: "/staff/members", icon: Users },
   ],
   admin: [
-    { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { label: "Dashboard checkins", href: "/admin/checkins", icon: Activity },
-    { label: "Quản lý staff", href: "/admin/staff", icon: UserCircle },
+    { label: "Tổng quan doanh thu", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Tổng quan check-in", href: "/admin/checkins", icon: Activity },
+    { label: "Quản lý nhân viên", href: "/admin/staff", icon: UserCircle },
     { label: "Quản lý gói tập", href: "/admin/packages", icon: Package },
-    { label: "Danh sách orders", href: "/admin/orders", icon: ClipboardList },
+    { label: "Danh sách đơn hàng", href: "/admin/orders", icon: ClipboardList },
     { label: "Hóa đơn", href: "/admin/invoices", icon: Receipt },
-    { label: "Danh sách members", href: "/admin/members", icon: Users },
+    { label: "Danh sách hội viên", href: "/admin/members", icon: Users },
     { label: "Phân quyền", href: "/admin/roles", icon: Shield },
-    { label: "Knowledge Base", href: "/admin/knowledge-bases", icon: BookOpen },
+    { label: "Cơ sở tri thức AI", href: "/admin/knowledge-bases", icon: BookOpen },
   ],
 };
 
@@ -179,10 +177,7 @@ export default function DashboardLayout({ children }) {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  let links = navItems[user.role] || [];
-  if (user.role === "admin") {
-    links = [...navItems.admin, ...navItems.staff];
-  }
+  const links = navItems[user.role] || [];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#e0e5ec]">
@@ -259,7 +254,10 @@ export default function DashboardLayout({ children }) {
               {location.pathname.replace(/\//g, " › ").replace(/^./, (c) => c.toUpperCase())}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-[#4a5568] font-semibold hidden sm:inline-block px-3 py-1.5 rounded-lg bg-[#d1d9e6]/50 shadow-[inset_2px_2px_4px_#babecc,inset_-2px_-2px_4px_#ffffff]">
+              📅 {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}
+            </span>
             <div
               className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm"
               style={{ boxShadow: "inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff" }}
