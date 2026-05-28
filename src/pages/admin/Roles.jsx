@@ -1,17 +1,19 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Shield, Key } from "lucide-react";
-import { Badge, Button, Card, ConfirmModal, Input, Label, Modal, PageHeader } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Shield, Key, Users, Search, SlidersHorizontal } from "lucide-react";
+import { Badge, Button, Card, ConfirmModal, Input, Label, Modal, PageHeader, Pagination, SearchFilterBar } from "@/components/ui";
 import {
   useAdminRoles,
   useAdminPermissions,
   useAdminCreateRole,
   useAdminUpdateRole,
   useAdminDeleteRole,
+  useAdminUsers,
 } from "@/hooks/use-queries";
 
-const INITIAL_FORM = { name: "", description: "", permissions: [] };
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Nhóm permissions theo prefix (member.*, staff.*, admin.*) */
+const INITIAL_ROLE_FORM = { name: "", description: "", permissions: [] };
+
 function groupPermissions(perms = []) {
   return perms.reduce((acc, p) => {
     const key = String(p.name || p).split(".")[0] || "other";
@@ -21,23 +23,352 @@ function groupPermissions(perms = []) {
   }, {});
 }
 
-const GROUP_COLORS = {
-  member: "success",
-  staff:  "warning",
-  admin:  "destructive",
-};
+const GROUP_COLORS = { member: "success", staff: "warning", admin: "destructive" };
+const ROLE_BADGE   = { admin: "destructive", staff: "warning", member: "success" };
+
+function getRoleColor(roleName = "") {
+  return ROLE_BADGE[roleName.toLowerCase()] || "default";
+}
+
+// ─── Modal chỉnh quyền của một Role ──────────────────────────────────────────
+
+function EditRolePermissionsModal({ role, allPermissions, grouped, onClose }) {
+  const updateRole = useAdminUpdateRole();
+
+  const [selectedPerms, setSelectedPerms] = useState(() =>
+    (role?.permissions || []).map((p) => p._id || p.id || p)
+  );
+
+  // Đồng bộ khi role thay đổi
+  useEffect(() => {
+    setSelectedPerms((role?.permissions || []).map((p) => p._id || p.id || p));
+  }, [role]);
+
+  const toggle = (permId) =>
+    setSelectedPerms((prev) =>
+      prev.includes(permId) ? prev.filter((id) => id !== permId) : [...prev, permId]
+    );
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const roleId = role._id || role.id;
+    updateRole.mutate(
+      { id: roleId, data: { name: role.name, description: role.description, permissions: selectedPerms } },
+      { onSuccess: () => onClose() }
+    );
+  };
+
+  // Chỉ hiện nhóm permissions khớp với tên role (staff → staff.*, member → member.*, ...)
+  // Nếu không tìm thấy nhóm phù hợp thì hiện tất cả
+  const rolePrefix   = (role?.name || "").toLowerCase();
+  const filteredGrouped = Object.entries(grouped).filter(([group]) =>
+    group.toLowerCase() === rolePrefix
+  );
+  const displayGrouped = filteredGrouped.length > 0 ? filteredGrouped : Object.entries(grouped);
+
+  // Chỉ đếm permissions trong nhóm đang hiển thị
+  const visiblePerms = displayGrouped.flatMap(([, perms]) => perms);
+  const totalSelected = visiblePerms.filter((p) => selectedPerms.includes(p._id || p.id || p)).length;
+  const totalAll      = visiblePerms.length;
+
+  return (
+    <Modal isOpen={!!role} onClose={onClose} title={`Chỉnh quyền: ${role?.name || ""}`}>
+      <form onSubmit={handleSave} className="space-y-4">
+        {/* Summary badge */}
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3"
+          style={{ boxShadow: "inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff" }}>
+          <Shield className="h-4 w-4 text-[#ff4757] shrink-0" />
+          <p className="text-sm text-[#2d3436]">
+            Đang chọn <strong className="text-[#ff4757]">{totalSelected}</strong> / {totalAll} quyền hạn
+          </p>
+        </div>
+
+        {/* Permission list grouped */}
+        <div
+          className="max-h-[55vh] overflow-y-auto rounded-xl p-3 space-y-4"
+          style={{ boxShadow: "inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff" }}
+        >
+          {visiblePerms.length === 0 && (
+            <p className="text-xs text-[#4a5568]">Không có quyền hạn nào cho vai trò "{role?.name}".</p>
+          )}
+          {displayGrouped.map(([group, perms]) => {
+            const groupSelected = perms.filter((p) => selectedPerms.includes(p._id || p.id || p)).length;
+            return (
+              <div key={group}>
+                {/* Group header với toggle all */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={GROUP_COLORS[group] || "default"}>{group}</Badge>
+                    <span className="text-xs text-[#4a5568]">{groupSelected}/{perms.length}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = perms.map((p) => p._id || p.id || p);
+                      const allChecked = allIds.every((id) => selectedPerms.includes(id));
+                      setSelectedPerms((prev) =>
+                        allChecked
+                          ? prev.filter((id) => !allIds.includes(id))
+                          : [...new Set([...prev, ...allIds])]
+                      );
+                    }}
+                    className="text-xs text-[#4a5568] hover:text-[#ff4757] transition-colors underline"
+                  >
+                    {perms.every((p) => selectedPerms.includes(p._id || p.id || p))
+                      ? "Bỏ chọn tất cả"
+                      : "Chọn tất cả"}
+                  </button>
+                </div>
+
+                {/* Permissions */}
+                <div className="space-y-1 pl-1">
+                  {perms.map((p) => {
+                    const id = p._id || p.id || p;
+                    const checked = selectedPerms.includes(id);
+                    return (
+                      <label
+                        key={id}
+                        className="flex items-center gap-2.5 py-1 cursor-pointer group"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggle(id)}
+                          className="accent-[#ff4757] w-4 h-4 shrink-0"
+                        />
+                        <span className={`font-mono text-xs transition-colors ${checked ? "text-[#2d3436] font-semibold" : "text-[#4a5568]"} group-hover:text-[#ff4757]`}>
+                          {p.name || p}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          isLoading={updateRole.isPending}
+        >
+          Lưu quyền hạn
+        </Button>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── Tab: Người dùng ──────────────────────────────────────────────────────────
+
+const LIMIT = 15;
+
+function UsersTab({ allRoles, allPermissions, grouped }) {
+  const [page, setPage]     = useState(1);
+  const [search, setSearch] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const [editingRole, setEditingRole] = useState(null); // role object đang chỉnh
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleId]);
+
+  const { data: raw, isLoading, isError, isFetching } = useAdminUsers({
+    page,
+    limit: LIMIT,
+    q: search,
+    roleId,
+  });
+
+  const users      = raw?.data ?? [];
+  const pagination = raw?.pagination ?? null;
+
+  // Khi click "Chỉnh quyền": tìm role object đầy đủ từ allRoles
+  const openEditRole = (user) => {
+    const roleName = user.role?.name || user.roleName || (typeof user.role === "string" ? user.role : "");
+    const roleId   = user.role?._id || user.role?.id || "";
+
+    // Tìm role đầy đủ (có permissions) từ danh sách
+    const found = allRoles.find(
+      (r) => (r._id || r.id) === roleId || r.name === roleName
+    );
+    if (found) {
+      setEditingRole(found);
+    }
+  };
+
+  const roleOptions = allRoles.map((r) => ({
+    label: r.name,
+    value: r._id || r.id,
+  }));
+
+  const handleClear = () => {
+    setSearch("");
+    setRoleId("");
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search & Filter Bar */}
+      <SearchFilterBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Tìm theo tên, email, số điện thoại..."
+        filters={[
+          {
+            key: "roleId",
+            label: "Vai trò",
+            value: roleId,
+            onChange: setRoleId,
+            options: roleOptions,
+            type: "select",
+          },
+        ]}
+        onClear={handleClear}
+      />
+
+      {/* States */}
+      {isLoading && <p className="text-sm text-[#4a5568]">Đang tải danh sách người dùng...</p>}
+      {isError && (
+        <div className="rounded-xl p-4 bg-[#ef4444]/10 border border-[#ef4444]/20">
+          <p className="text-sm text-[#ef4444]">
+            Không tải được danh sách người dùng. Hãy kiểm tra API <code>/admin/users</code>.
+          </p>
+        </div>
+      )}
+      {isFetching && !isLoading && <p className="text-xs text-[#4a5568]">Đang cập nhật...</p>}
+
+      {/* Mobile cards */}
+      <div className="space-y-4 sm:hidden">
+        {users.map((user) => {
+          const roleName = user.role?.name || user.roleName || (typeof user.role === "string" ? user.role : "-");
+          const hasRole = roleName !== "-";
+          const roleId = user.role?._id || user.role?.id || "";
+          const roleObj = allRoles.find((r) => (r._id || r.id) === roleId || r.name === roleName);
+
+          return (
+            <Card key={user._id || user.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[#2d3436]">{user.name || user.fullName || "-"}</p>
+                  <p className="truncate text-sm text-[#4a5568]">{user.email || "-"}</p>
+                </div>
+                {hasRole ? (
+                  <Badge variant={getRoleColor(roleName)}>{roleName}</Badge>
+                ) : (
+                  <span className="text-xs text-[#babecc]">Chưa có</span>
+                )}
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 px-3 text-xs gap-1.5"
+                  disabled={!roleObj}
+                  title={!roleObj ? "Không tìm thấy thông tin vai trò" : ""}
+                  onClick={() => roleObj && setEditingRole(roleObj)}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Chỉnh quyền
+                </Button>
+              </div>
+            </Card>
+          );
+        })}
+        {!isLoading && !isError && users.length === 0 && (
+          <p className="text-center text-[#4a5568] py-8">Không tìm thấy người dùng nào.</p>
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <Card className="hidden p-0 overflow-x-auto sm:block">
+        {!isLoading && !isError && (
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="text-xs uppercase tracking-wider text-[#4a5568]"
+              style={{ background: "rgba(209,217,230,0.6)", borderBottom: "1px solid #babecc" }}>
+              <tr>
+                <th className="p-4">Người dùng</th>
+                <th className="p-4">Email</th>
+                <th className="p-4 text-center">Vai trò hiện tại</th>
+                <th className="p-4 text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => {
+                const roleName = user.role?.name || user.roleName || (typeof user.role === "string" ? user.role : "-");
+                const hasRole = roleName !== "-";
+                const roleId = user.role?._id || user.role?.id || "";
+                const roleObj = allRoles.find((r) => (r._id || r.id) === roleId || r.name === roleName);
+
+                return (
+                  <tr key={user._id || user.id} className="border-b border-[#d1d9e6] hover:bg-[#d1d9e6]/40 transition-colors">
+                    <td className="p-4 font-semibold text-[#2d3436]">{user.name || user.fullName || "-"}</td>
+                    <td className="p-4 text-[#4a5568]">{user.email || "-"}</td>
+                    <td className="p-4 text-center">
+                      {hasRole ? (
+                        <Badge variant={getRoleColor(roleName)}>{roleName}</Badge>
+                      ) : (
+                        <span className="text-xs text-[#babecc]">Chưa có</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 px-3 text-xs gap-1.5"
+                          disabled={!roleObj}
+                          title={!roleObj ? "Không tìm thấy thông tin vai trò" : ""}
+                          onClick={() => roleObj && setEditingRole(roleObj)}
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5" />
+                          Chỉnh quyền
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr>
+                  <td className="p-8 text-center text-[#4a5568]" colSpan={4}>
+                    Không tìm thấy người dùng nào.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      {/* Pagination */}
+      {pagination && (
+        <Pagination
+          meta={pagination}
+          currentPage={page}
+          onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        />
+      )}
+
+      {/* Modal chỉnh quyền */}
+      {editingRole && (
+        <EditRolePermissionsModal
+          role={editingRole}
+          allPermissions={allPermissions}
+          grouped={grouped}
+          onClose={() => setEditingRole(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminRoles() {
-  const { data: roles = [], isLoading: loadingRoles } = useAdminRoles();
+  const { data: roles = [] } = useAdminRoles();
   const { data: permissions = [] } = useAdminPermissions();
-  const createRole = useAdminCreateRole();
-  const updateRole = useAdminUpdateRole();
-  const deleteRole = useAdminDeleteRole();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const allPermissions = Array.isArray(permissions)
     ? permissions
@@ -45,207 +376,14 @@ export default function AdminRoles() {
   const allRoles = Array.isArray(roles) ? roles : roles?.data ?? roles?.roles ?? [];
   const grouped = groupPermissions(allPermissions);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(INITIAL_FORM);
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (role) => {
-    setEditingId(role._id || role.id);
-    setForm({
-      name: role.name || "",
-      description: role.description || "",
-      permissions: (role.permissions || []).map((p) => p._id || p.id || p),
-    });
-    setIsModalOpen(true);
-  };
-
-  const togglePermission = (permId) => {
-    setForm((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(permId)
-        ? prev.permissions.filter((id) => id !== permId)
-        : [...prev.permissions, permId],
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingId) {
-      updateRole.mutate({ id: editingId, data: form }, { onSuccess: () => setIsModalOpen(false) });
-    } else {
-      createRole.mutate(form, { onSuccess: () => { setIsModalOpen(false); setForm(INITIAL_FORM); } });
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Phân quyền"
-        description="Quản lý vai trò và quyền hạn trong hệ thống"
-        action={
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Tạo Role
-          </Button>
-        }
+        title="Phân quyền người dùng"
+        description="Xem danh sách tài khoản người dùng và điều chỉnh quyền hạn theo vai trò"
       />
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Cột Roles — 3/5 */}
-        <div className="lg:col-span-3 space-y-4">
-          <h2 className="text-base font-bold text-[#2d3436] flex items-center gap-2">
-            <Shield className="h-4 w-4 text-[#ff4757]" />
-            Roles ({allRoles.length})
-          </h2>
-
-          {loadingRoles && <p className="text-[#4a5568]">Đang tải roles...</p>}
-
-          {allRoles.map((role) => (
-            <Card key={role._id || role.id} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-[#2d3436]">{role.name}</h3>
-                    <Badge>{(role.permissions || []).length} quyền</Badge>
-                  </div>
-                  {role.description && (
-                    <p className="text-sm text-[#4a5568] mt-1">{role.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(role.permissions || []).slice(0, 5).map((p, i) => (
-                      <span
-                        key={i}
-                        className="inline-block rounded-full px-2 py-0.5 text-xs font-mono bg-[#d1d9e6] text-[#4a5568]"
-                      >
-                        {p.name || p}
-                      </span>
-                    ))}
-                    {(role.permissions || []).length > 5 && (
-                      <span className="text-xs text-[#4a5568]">+{(role.permissions || []).length - 5} more</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="icon" variant="outline" onClick={() => openEdit(role)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="destructive" onClick={() => setDeleteTargetId(role._id || role.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-
-          {!loadingRoles && allRoles.length === 0 && (
-            <Card className="text-center py-8 text-[#4a5568]">Chưa có role nào.</Card>
-          )}
-        </div>
-
-        {/* Cột Permissions — 2/5 */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-base font-bold text-[#2d3436] flex items-center gap-2">
-            <Key className="h-4 w-4 text-[#ff4757]" />
-            Permissions ({allPermissions.length})
-          </h2>
-
-          {Object.entries(grouped).map(([group, perms]) => (
-            <Card key={group} className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant={GROUP_COLORS[group] || "default"}>{group}</Badge>
-                <span className="text-xs text-[#4a5568]">{perms.length} quyền</span>
-              </div>
-              <div className="space-y-1.5">
-                {perms.map((p, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#ff4757] shrink-0" />
-                    <span className="font-mono text-xs text-[#4a5568]">{p.name || p}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Delete confirm */}
-      <ConfirmModal
-        isOpen={!!deleteTargetId}
-        onClose={() => setDeleteTargetId(null)}
-        onConfirm={() =>
-          deleteRole.mutate(deleteTargetId, {
-            onSuccess: () => setDeleteTargetId(null),
-            onError:   () => setDeleteTargetId(null),
-          })
-        }
-        title="Xóa Role"
-        message="Xóa role sẽ ảnh hưởng đến tất cả người dùng đang được gán role này."
-        confirmLabel="Xóa"
-        isLoading={deleteRole.isPending}
-      />
-
-      {/* Create/Edit modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingId ? "Sửa Role" : "Tạo Role mới"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label required>Tên Role</Label>
-            <Input
-              placeholder="VD: trainer"
-              value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              required
-            />
-          </div>
-          <div>
-            <Label>Mô tả</Label>
-            <Input
-              placeholder="Mô tả vai trò"
-              value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label>Permissions</Label>
-            <div
-              className="max-h-52 overflow-y-auto rounded-xl p-3 space-y-1"
-              style={{ boxShadow: "inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff" }}
-            >
-              {allPermissions.length === 0 && (
-                <p className="text-xs text-[#4a5568]">Không có permissions.</p>
-              )}
-              {Object.entries(grouped).map(([group, perms]) => (
-                <div key={group} className="mb-3">
-                  <p className="text-xs font-bold text-[#2d3436] uppercase tracking-wider mb-1">{group}</p>
-                  {perms.map((p) => {
-                    const id = p._id || p.id || p;
-                    const checked = form.permissions.includes(id);
-                    return (
-                      <label key={id} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#ff4757] transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => togglePermission(id)}
-                          className="accent-[#ff4757]"
-                        />
-                        <span className="font-mono text-xs text-[#4a5568]">{p.name || p}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-          <Button type="submit" className="w-full" isLoading={createRole.isPending || updateRole.isPending}>
-            {editingId ? "Lưu thay đổi" : "Tạo Role"}
-          </Button>
-        </form>
-      </Modal>
+      <UsersTab allRoles={allRoles} allPermissions={allPermissions} grouped={grouped} />
     </div>
   );
 }

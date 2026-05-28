@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { createVnpayPayment } from "@/lib/payments";
+import { createVnpayPayment, createCashPayment } from "@/lib/payments";
 import { buildQueryString } from "@/lib/queryString";
 import {
   normalizeAdminStaffResponse,
@@ -117,6 +117,14 @@ export const useAdminDeleteStaff = () => {
   });
 };
 
+export const useAdminPermanentDeleteStaff = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => (await api.delete(`/admin/staff/${id}/permanent`)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/admin/staff"] }),
+  });
+};
+
 export const useAdminCreatePackage = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -143,9 +151,22 @@ export const useAdminDeletePackage = () => {
   });
 };
 
+export const useAdminPermanentDeletePackage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => (await api.delete(`/admin/packages/${id}/permanent`)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/admin/packages"] }),
+  });
+};
+
 export const useCreateVnpayPayment = () =>
   useMutation({
     mutationFn: createVnpayPayment,
+  });
+
+export const useCreateCashPayment = () =>
+  useMutation({
+    mutationFn: createCashPayment,
   });
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -213,6 +234,30 @@ export const useAdminDeleteRole = () => {
   return useMutation({
     mutationFn: async (id) => (await api.delete(`/admin/roles/${id}`)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/admin/roles"] }),
+  });
+};
+
+/** GET /api/admin/users — tất cả user (search: q; filter: roleId; paginate: page, limit) */
+export const useAdminUsers = ({ page = 1, limit = 15, q = "", roleId = "" } = {}) =>
+  useQuery({
+    queryKey: ["/admin/users", page, limit, q, roleId],
+    queryFn: async () => {
+      const qs = buildQueryString({ page, limit, q, roleId });
+      const res = await api.get(`/admin/users?${qs}`);
+      const raw = res.data;
+      if (Array.isArray(raw)) return { data: raw, pagination: null };
+      return { data: raw?.data ?? raw?.users ?? [], pagination: raw?.pagination ?? null };
+    },
+    keepPreviousData: true,
+  });
+
+/** PATCH /api/admin/users/:userId/role — cập nhật role cho user */
+export const useAdminUpdateUserRole = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, roleId }) =>
+      (await api.patch(`/admin/users/${userId}/role`, { roleId })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/admin/users"] }),
   });
 };
 

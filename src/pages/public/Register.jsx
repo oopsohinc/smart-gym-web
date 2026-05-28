@@ -17,7 +17,7 @@ export default function Register() {
     watch,
     formState: { errors },
   } = useForm({
-    defaultValues: { name: "", email: "", phone: "", password: "", confirmPassword: "" },
+    defaultValues: { fullName: "", email: "", phone: "", password: "", confirmPassword: "" },
   });
 
   const serverError = registerMutation.error?.response?.data?.message || registerMutation.error?.message;
@@ -70,10 +70,11 @@ export default function Register() {
                 className={`w-full h-12 px-4 rounded-xl text-sm text-[#2d3436] bg-[#e0e5ec] outline-none transition-all
                   shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff]
                   focus:shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff,0_0_0_2px_#ff4757]
-                  placeholder:text-[#a0aec0]`}
-                {...register("name", { required: "Họ tên là bắt buộc" })}
+                  placeholder:text-[#a0aec0]
+                  ${errors.fullName ? "shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff,0_0_0_2px_#ff4757]" : ""}`}
+                {...register("fullName", { required: "Họ tên là bắt buộc" })}
               />
-              {errors.name && <p className="mt-1.5 text-xs text-[#ff4757]">{errors.name.message}</p>}
+              {errors.fullName && <p className="mt-1.5 text-xs text-[#ff4757]">{errors.fullName.message}</p>}
             </div>
 
             {/* Email */}
@@ -90,13 +91,21 @@ export default function Register() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold text-[#2d3436] mb-2">Số điện thoại</label>
+              <label className="block text-sm font-semibold text-[#2d3436] mb-2">Số điện thoại <span className="text-[#ff4757]">*</span></label>
               <input
                 type="tel"
                 placeholder="09xxxxxxxx"
-                className="w-full h-12 px-4 rounded-xl text-sm text-[#2d3436] bg-[#e0e5ec] outline-none transition-all shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff] focus:shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff,0_0_0_2px_#ff4757] placeholder:text-[#a0aec0]"
-                {...register("phone")}
+                className={`w-full h-12 px-4 rounded-xl text-sm text-[#2d3436] bg-[#e0e5ec] outline-none transition-all shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff] focus:shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff,0_0_0_2px_#ff4757] placeholder:text-[#a0aec0]
+                  ${errors.phone ? "shadow-[inset_4px_4px_8px_#babecc,inset_-4px_-4px_8px_#ffffff,0_0_0_2px_#ff4757]" : ""}`}
+                {...register("phone", { 
+                  required: "Số điện thoại là bắt buộc",
+                  pattern: {
+                    value: /^[0-9]{10}$/,
+                    message: "Số điện thoại phải gồm 10 chữ số"
+                  }
+                })}
               />
+              {errors.phone && <p className="mt-1.5 text-xs text-[#ff4757]">{errors.phone.message}</p>}
             </div>
 
             {/* Password */}

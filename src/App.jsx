@@ -6,6 +6,7 @@ import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 
 import Login from "@/pages/public/Login";
 import Register from "@/pages/public/Register";
+import ForgotPassword from "@/pages/public/ForgotPassword";
 import PackagesPublic from "@/pages/public/Packages";
 import Landing from "@/pages/public/Landing";
 
@@ -88,6 +89,7 @@ function AppRouter() {
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={["member"]} />}>

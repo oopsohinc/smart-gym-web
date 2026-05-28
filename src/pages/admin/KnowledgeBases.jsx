@@ -84,7 +84,7 @@ export default function KnowledgeBases() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Knowledge Base" description="Tài liệu đào tạo AI assistant"
+      <PageHeader title="Cơ sở tri thức" description="Tài liệu đào tạo AI assistant"
         action={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Thêm tài liệu</Button>} />
 
       <SearchFilterBar

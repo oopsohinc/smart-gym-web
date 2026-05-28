@@ -53,10 +53,20 @@ export default function SearchFilterBar({
               <span className="text-xs text-[#4a5568] font-medium px-1">{filter.label}</span>
             )}
             <input
-              type="date"
+              type="text"
+              placeholder="dd/mm/yyyy"
+              maxLength={10}
               value={filter.value || ""}
-              onChange={(e) => filter.onChange(e.target.value)}
-              className="rounded-xl px-3 py-2.5 text-sm text-[#2d3436] outline-none cursor-pointer transition-all"
+              onChange={(e) => {
+                let val = e.target.value.replace(/[^0-9/]/g, "");
+                if (val.length === 2 && !val.includes("/")) {
+                  val = val + "/";
+                } else if (val.length === 5 && val.split("/").length === 2) {
+                  val = val + "/";
+                }
+                filter.onChange(val);
+              }}
+              className="rounded-xl px-3 py-2.5 text-sm text-[#2d3436] outline-none transition-all w-[140px]"
               style={neuInputStyle}
             />
           </div>

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Receipt } from "lucide-react";
 import { Badge, Card, PageHeader, Pagination, SearchFilterBar } from "@/components/ui";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, parseViDate, formatViDateToIso } from "@/lib/utils";
 import { useAdminInvoices } from "@/hooks/use-queries";
 
 const LIMIT = 10;
@@ -35,13 +35,23 @@ export default function AdminInvoices() {
     setCurrentPage(1);
   }, [search, status, from, to]);
 
+  const dateError = useMemo(() => {
+    if (!from || !to) return null;
+    const dFrom = parseViDate(from);
+    const dTo = parseViDate(to);
+    if (dFrom && dTo && dFrom > dTo) {
+      return "Từ ngày không được lớn hơn đến ngày!";
+    }
+    return null;
+  }, [from, to]);
+
   const { data: raw, isLoading, isError, isFetching } = useAdminInvoices({
     page: currentPage,
     limit: LIMIT,
     q: search,
     status,
-    from,
-    to,
+    from: dateError ? "" : formatViDateToIso(from),
+    to: dateError ? "" : formatViDateToIso(to),
   });
 
   // API: { data: [...], pagination: { currentPage, totalPages, ... } }
@@ -91,6 +101,12 @@ export default function AdminInvoices() {
         ]}
         onClear={handleClear}
       />
+
+      {dateError && (
+        <div className="text-sm font-semibold text-[#ef4444] bg-[#fee2e2] px-4 py-2.5 rounded-xl border border-[#fca5a5]">
+          ⚠️ {dateError}
+        </div>
+      )}
 
       {/* Trạng thái loading / error */}
       {isLoading && <p className="text-[#4a5568]">Đang tải hóa đơn...</p>}

@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: 'DM Sans', sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-sans: 'Be Vietnam Pro', sans-serif;
+  --font-display: 'Be Vietnam Pro', sans-serif;
 
   /* ─── Landing palette (Neumorphism light) ─── */
   --color-background: #e0e5ec;
@@ -127,4 +127,15 @@
   ::-webkit-scrollbar-track { background: #d1d9e6; }
   ::-webkit-scrollbar-thumb { background: #babecc; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #ff4757; }
+}
+
+/* Ẩn icon con mắt hiển thị mật khẩu mặc định của trình duyệt (Edge, Chrome, v.v.) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
 }

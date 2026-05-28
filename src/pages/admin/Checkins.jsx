@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
+import { CheckinChart } from "@/components/admin/DashboardCharts";
 import { useAdminCheckins } from "@/hooks/use-queries";
+import { parseViDate, formatViDateToIso } from "@/lib/utils";
 
 export default function AdminCheckins() {
   const [rangeMode, setRangeMode] = useState("thisMonth");
@@ -11,21 +14,40 @@ export default function AdminCheckins() {
 
   const { data, isLoading, isError } = useAdminCheckins(appliedFilter);
 
+  const checkinsPeriodText = useMemo(() => {
+    if (appliedFilter.from && appliedFilter.to) {
+      return ` (${format(new Date(appliedFilter.from), "dd/MM/yyyy")} - ${format(new Date(appliedFilter.to), "dd/MM/yyyy")})`;
+    }
+    if (appliedFilter.period) {
+      const trans = { today: "Hôm nay", last7days: "7 ngày gần nhất", thisMonth: "Tháng này", thisYear: "Năm nay" };
+      return ` (${trans[appliedFilter.period] || appliedFilter.period})`;
+    }
+    return "";
+  }, [appliedFilter]);
+
   const handleApplyFilter = () => {
     setFilterError("");
 
     if (rangeMode === "custom") {
       if (!customFrom || !customTo) {
-        setFilterError("Vui lòng chọn đầy đủ từ ngày và đến ngày.");
+        setFilterError("Vui lòng nhập đầy đủ từ ngày và đến ngày.");
         return;
       }
 
-      if (new Date(customFrom) > new Date(customTo)) {
+      const dFrom = parseViDate(customFrom);
+      const dTo = parseViDate(customTo);
+
+      if (!dFrom || !dTo) {
+        setFilterError("Định dạng ngày không hợp lệ. Vui lòng dùng dd/mm/yyyy");
+        return;
+      }
+
+      if (dFrom > dTo) {
         setFilterError("Từ ngày không được lớn hơn đến ngày.");
         return;
       }
 
-      setAppliedFilter({ period: "", from: customFrom, to: customTo });
+      setAppliedFilter({ period: "", from: formatViDateToIso(customFrom), to: formatViDateToIso(customTo) });
       return;
     }
 
@@ -34,15 +56,15 @@ export default function AdminCheckins() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard Check-ins" />
+      <PageHeader title="Thống kê check-in" />
 
       {isLoading && <p className="text-muted-foreground">Đang tải check-ins...</p>}
       {isError && <p className="text-destructive">Không tải được check-ins.</p>}
 
-      <Card>
-        <div className="grid gap-4 md:grid-cols-[220px_1fr_1fr_auto] md:items-end">
-          <div>
-            <p className="mb-2 text-sm font-medium">Khoảng thời gian</p>
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold shrink-0 text-[#4a5568]">Thời gian:</span>
             <Select
               value={rangeMode}
               onChange={(e) => setRangeMode(e.target.value)}
@@ -57,28 +79,47 @@ export default function AdminCheckins() {
           </div>
 
           {rangeMode === "custom" && (
-            <>
-              <div>
-                <p className="mb-2 text-sm font-medium">Từ ngày</p>
-                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-medium">Đến ngày</p>
-                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-              </div>
-            </>
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                value={customFrom}
+                onChange={(e) => {
+                  let val = e.target.value.replace(/[^0-9/]/g, "");
+                  if (val.length === 2 && !val.includes("/")) {
+                    val = val + "/";
+                  } else if (val.length === 5 && val.split("/").length === 2) {
+                    val = val + "/";
+                  }
+                  setCustomFrom(val);
+                }}
+              />
+              <span className="text-sm text-[#4a5568]">-</span>
+              <Input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                value={customTo}
+                onChange={(e) => {
+                  let val = e.target.value.replace(/[^0-9/]/g, "");
+                  if (val.length === 2 && !val.includes("/")) {
+                    val = val + "/";
+                  } else if (val.length === 5 && val.split("/").length === 2) {
+                    val = val + "/";
+                  }
+                  setCustomTo(val);
+                }}
+              />
+            </div>
           )}
 
-          <div className="md:justify-self-end">
-            <Button onClick={handleApplyFilter} isLoading={isLoading}>
-              Áp dụng
-            </Button>
-          </div>
+          <Button onClick={handleApplyFilter} isLoading={isLoading} size="sm" className="h-10 px-5">
+            Áp dụng
+          </Button>
+
+          {filterError && <p className="text-sm text-destructive">{filterError}</p>}
         </div>
-        {filterError && <p className="mt-3 text-sm text-destructive">{filterError}</p>}
-        <p className="mt-4 text-sm text-muted-foreground">
-          Kiểu dữ liệu: <span className="text-foreground font-medium">{data?.filterType || appliedFilter.period || "custom"}</span>
-        </p>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -93,14 +134,11 @@ export default function AdminCheckins() {
       </div>
 
       <Card>
-        <h3 className="font-semibold mb-3">Theo ngày trong tuần</h3>
-        <div className="space-y-2">
-          {(data?.weeklyCheckins || []).map((item) => (
-            <div key={item.date} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 p-3">
-              <span className="min-w-0 truncate">{item.date}</span>
-              <strong className="shrink-0">{item.count}</strong>
-            </div>
-          ))}
+        <h3 className="font-semibold mb-3">
+          Lượt check-in theo ngày<span className="text-[#ff4757]">{checkinsPeriodText}</span>
+        </h3>
+        <div className="h-[300px] sm:h-[380px]">
+          <CheckinChart data={data?.weeklyCheckins || []} />
         </div>
       </Card>
     </div>
