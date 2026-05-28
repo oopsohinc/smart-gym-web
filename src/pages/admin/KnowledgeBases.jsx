@@ -118,10 +118,7 @@ export default function KnowledgeBases() {
                 ))}
               </div>
             )}
-            <div className="flex gap-2 pt-1 mt-auto">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewingId(getId(item))}>
-                <Eye className="mr-1.5 h-3.5 w-3.5" />Xem
-              </Button>
+            <div className="flex gap-2 pt-1 mt-auto justify-end">
               <Button size="icon" variant="secondary" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
               <Button size="icon" variant="destructive" onClick={() => setDeleteTargetId(getId(item))}><Trash2 className="h-4 w-4" /></Button>
             </div>
