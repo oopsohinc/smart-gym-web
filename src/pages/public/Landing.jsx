@@ -109,7 +109,7 @@ export default function Landing() {
           <div className="flex items-center justify-between h-16 md:h-20">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full shadow-[4px_4px_8px_#babecc,-4px_-4px_8px_#ffffff] flex items-center justify-center overflow-hidden bg-[#e0e5ec]">
-                <img src="/svgymicon.svg" alt="SV Gym logo" className="w-10 h-10 object-contain" />
+                <img src="/svgymicon.svg" alt="SV Gym logo" className="w-10 h-10 object-contain mix-blend-multiply" />
               </div>
               <div>
                 <span className="font-extrabold text-xl md:text-2xl tracking-tight drop-shadow-[0_1px_0_#ffffff]">
@@ -498,7 +498,7 @@ export default function Landing() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full shadow-[4px_4px_8px_#babecc,-4px_-4px_8px_#ffffff] flex items-center justify-center overflow-hidden bg-[#e0e5ec]">
-                <img src="/svgymicon.svg" alt="SV Gym" className="w-10 h-10 object-contain" />
+                <img src="/svgymicon.svg" alt="SV Gym" className="w-10 h-10 object-contain mix-blend-multiply" />
               </div>
               <div>
                 <span className="font-extrabold text-xl tracking-tight">

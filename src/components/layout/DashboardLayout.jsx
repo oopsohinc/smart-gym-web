@@ -84,7 +84,7 @@ function SidebarContent({ user, links, logout, onClose }) {
         style={{ boxShadow: "0 2px 4px #babecc" }}
       >
         <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#e0e5ec] shadow-[3px_3px_6px_#babecc,-3px_-3px_6px_#ffffff] shrink-0">
-          <img src="/svgymicon.svg" alt="SV Gym" className="w-7 h-7 object-contain" />
+          <img src="/svgymicon.svg" alt="SV Gym" className="w-7 h-7 object-contain mix-blend-multiply" />
         </div>
         <span className="font-display text-lg font-extrabold text-[#2d3436]">
           SV <span className="text-[#ff4757]">GYM</span>

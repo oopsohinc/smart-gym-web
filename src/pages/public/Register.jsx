@@ -37,7 +37,7 @@ export default function Register() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center bg-[#e0e5ec] shadow-[8px_8px_16px_#babecc,-8px_-8px_16px_#ffffff]">
-            <img src="/svgymicon.svg" alt="SV Gym" className="w-14 h-14 object-contain" />
+            <img src="/svgymicon.svg" alt="SV Gym" className="w-14 h-14 object-contain mix-blend-multiply" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-[#2d3436]">
             SV <span className="text-[#ff4757]">GYM</span>
